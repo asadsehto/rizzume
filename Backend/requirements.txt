@@ -1,0 +1,4 @@
+Flask
+jinja2  # for template rendering
+pdflatex  # to convert LaTeX to PDF (you might need to install this system-wide too)
+requests  # for making HTTP requests to the LaTeX service
