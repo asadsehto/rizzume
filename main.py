@@ -3,7 +3,13 @@ import os
 import subprocess
 import uuid
 
+from flask import Flask
+from flask_cors import CORS
+
 app = Flask(__name__)
+
+# Allow all domains for now
+CORS(app)  # You can specify origins here like CORS(app, origins=["https://yourfrontend.netlify.app"])
 
 @app.route("/")
 def home():
