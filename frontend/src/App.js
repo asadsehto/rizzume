@@ -248,7 +248,7 @@ function App() {
     
     try {
       // Make API call to backend
-      const response = await fetch('/generate-pdf', {
+      const response = await fetch('https://independent-balance-production.up.railway.app/generate-pdf', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
