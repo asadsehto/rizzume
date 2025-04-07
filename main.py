@@ -6,57 +6,53 @@ import tempfile
 import traceback
 import sys
 import logging
+import shutil
+from io import BytesIO
 from flask_cors import CORS
+from datetime import datetime
 
 # Configure logging
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format='%(asctime)s.%(msecs)03d - %(name)s - %(levelname)s - %(process)d - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
 )
 logger = logging.getLogger('rizzume')
+logger.setLevel(logging.DEBUG)
+
+# File handler for persistent logs
+file_handler = logging.FileHandler('rizzume.log')
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logger.addHandler(file_handler)
 
 app = Flask(__name__)
 CORS(app)  # Allow all domains
 
-@app.route("/")
-def home():
-    return "Welcome to Rizzume - Resume Generator API!"
+# Configuration
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB limit
+TEMP_PDF_DIR = os.environ.get('TEMP_PDF_DIR', '/tmp/pdfs')
 
-@app.route("/health")
-def health_check():
-    """Simple endpoint to check if LaTeX is installed and working"""
+def setup_environment():
+    """Ensure required directories exist"""
+    os.makedirs(TEMP_PDF_DIR, exist_ok=True)
+    logger.info(f"Environment setup complete. Temp PDF dir: {TEMP_PDF_DIR}")
+    logger.info(f"LaTeX version: {get_latex_version()}")
+
+def get_latex_version():
+    """Get installed LaTeX version"""
     try:
-        # Check if pdflatex is installed
-        result = subprocess.run(["pdflatex", "--version"], capture_output=True, text=True)
-        if result.returncode == 0:
-            # Check if we can create a simple temp directory
-            with tempfile.TemporaryDirectory() as temp_dir:
-                test_file = os.path.join(temp_dir, "test.txt")
-                with open(test_file, 'w') as f:
-                    f.write("Test")
-                if os.path.exists(test_file):
-                    return jsonify({
-                        "status": "healthy",
-                        "pdflatex": result.stdout.split('\n')[0],
-                        "temp_dir": "working"
-                    })
-        
-        return jsonify({
-            "status": "unhealthy",
-            "pdflatex": result.stdout if result.returncode == 0 else result.stderr,
-            "returncode": result.returncode
-        }), 500
+        result = subprocess.run(['pdflatex', '--version'], capture_output=True, text=True)
+        return result.stdout.split('\n')[0] if result.returncode == 0 else "Not available"
     except Exception as e:
-        return jsonify({
-            "status": "error",
-            "error": str(e),
-            "traceback": traceback.format_exc()
-        }), 500
+        logger.error(f"Error getting LaTeX version: {str(e)}")
+        return "Error"
 
 def escape_latex(text):
-    """Escape LaTeX special characters"""
+    """Enhanced LaTeX escaping with logging"""
     if not text:
         return ""
+    
+    original_text = text
     replacements = {
         '\\': r'\\textbackslash{}',
         '&': r'\&',
@@ -67,124 +63,161 @@ def escape_latex(text):
         '{': r'\{',
         '}': r'\}',
         '~': r'\textasciitilde{}',
-        '^': r'\textasciicircum{}'
+        '^': r'\textasciicircum{}',
+        '<': r'\textless{}',
+        '>': r'\textgreater{}'
     }
+    
     for char, replacement in replacements.items():
         text = text.replace(char, replacement)
+    
+    if original_text != text:
+        logger.debug(f"Escaped LaTeX special chars in: {original_text[:50]}...")
+    
     return text
 
 def generate_pdf(latex_content):
+    """Generate PDF from LaTeX content with robust error handling"""
+    temp_dir = None
     try:
-        logger.info("Starting PDF generation process")
-        # Use Python's tempfile module to create temporary files
-        with tempfile.TemporaryDirectory() as temp_dir:
-            logger.info(f"Created temporary directory: {temp_dir}")
-            # Check if directory is writable
-            test_file = os.path.join(temp_dir, "test_write.txt")
-            try:
-                with open(test_file, 'w') as f:
-                    f.write("Testing write permissions")
-                logger.info(f"Temp directory is writable: {os.path.exists(test_file)}")
-            except Exception as e:
-                logger.error(f"Temp directory is not writable: {str(e)}")
-                return None
-            
-            # Generate unique filenames
-            unique_id = str(uuid.uuid4())[:8]
-            base_filename = f"resume_{unique_id}"
-            tex_filename = f"{base_filename}.tex"
-            pdf_filename = f"{base_filename}.pdf"
-            
-            tex_file_path = os.path.join(temp_dir, tex_filename)
-            pdf_file_path = os.path.join(temp_dir, pdf_filename)
-            
-            logger.info(f"Writing LaTeX content to {tex_file_path}")
-            # Write LaTeX content to file
-            try:
-                with open(tex_file_path, 'w', encoding='utf-8') as latex_file:
-                    latex_file.write(latex_content)
-                logger.info(f"LaTeX file created successfully: {os.path.exists(tex_file_path)}")
-            except Exception as e:
-                logger.error(f"Error writing LaTeX file: {str(e)}")
-                return None
-            
-            # Save a debug copy in the same temp directory
-            debug_path = os.path.join(temp_dir, "debug_latest.tex")
-            with open(debug_path, 'w', encoding='utf-8') as debug_file:
-                debug_file.write(latex_content)
-            
-            # Log environment variables and current directory
-            logger.info(f"Current working directory: {os.getcwd()}")
-            logger.info(f"PATH environment: {os.environ.get('PATH', 'Not set')}")
-            
-            # Change to temp directory before running pdflatex
-            original_dir = os.getcwd()
-            os.chdir(temp_dir)
-            logger.info(f"Changed to directory: {temp_dir}")
-            
-            try:
-                # Run pdflatex
-                cmd = ["pdflatex", "-interaction=nonstopmode", tex_filename]
-                logger.info(f"Running command: {' '.join(cmd)}")
-                
-                result = subprocess.run(cmd, capture_output=True, text=True)
-                logger.info(f"pdflatex return code: {result.returncode}")
-                
-                # Save command output
-                log_path = os.path.join(temp_dir, "pdflatex_output.log")
-                with open(log_path, "w") as log:
-                    log.write(f"COMMAND: {' '.join(cmd)}\n\n")
-                    log.write(f"STDOUT:\n{result.stdout}\n\n")
-                    log.write(f"STDERR:\n{result.stderr}\n\n")
-                    log.write(f"RETURN CODE: {result.returncode}\n")
-                
-                # List directory contents to make sure PDF was created
-                dir_contents = os.listdir(temp_dir)
-                logger.info(f"Directory contents after pdflatex: {dir_contents}")
-                
-                # Check if PDF was created
-                if os.path.exists(pdf_filename):
-                    logger.info(f"PDF created successfully: {pdf_filename}")
-                    # Copy the PDF to a location that will persist after the temporary directory is deleted
-                    # For this purpose, we'll simply return the path since Flask's send_file will read it
-                    # before the temporary directory is cleaned up
-                    return os.path.join(temp_dir, pdf_filename)
-                else:
-                    logger.error(f"PDF generation failed. PDF file not found in {temp_dir}")
-                    if os.path.exists(f"{base_filename}.log"):
-                        with open(f"{base_filename}.log", "r") as log_file:
-                            log_content = log_file.read()
-                            logger.error(f"LaTeX log: {log_content}")
-                    
-                    # Get the error log if available
-                    latex_log_path = os.path.join(temp_dir, f"{base_filename}.log")
-                    if os.path.exists(latex_log_path):
-                        with open(latex_log_path, "r") as f:
-                            latex_log = f.read()
-                            logger.error(f"LaTeX log content: {latex_log}")
-                    
-                    return None
-            finally:
-                logger.info(f"Changing back to original directory: {original_dir}")
-                os.chdir(original_dir)
+        # Create a dedicated temp directory
+        temp_dir = tempfile.mkdtemp(dir=TEMP_PDF_DIR)
+        logger.info(f"Created temp directory: {temp_dir}")
+        logger.debug(f"Directory writable: {os.access(temp_dir, os.W_OK)}")
+        
+        # Generate unique filenames
+        unique_id = str(uuid.uuid4())[:8]
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        base_filename = f"resume_{timestamp}_{unique_id}"
+        tex_filename = f"{base_filename}.tex"
+        pdf_filename = f"{base_filename}.pdf"
+        
+        tex_path = os.path.join(temp_dir, tex_filename)
+        pdf_path = os.path.join(temp_dir, pdf_filename)
+        
+        # Write LaTeX content
+        logger.info(f"Writing LaTeX to {tex_path}")
+        with open(tex_path, 'w', encoding='utf-8') as f:
+            f.write(latex_content)
+        
+        # Save debug copy
+        debug_path = os.path.join(temp_dir, "debug.tex")
+        with open(debug_path, 'w') as f:
+            f.write(latex_content)
+        
+        # Compile LaTeX
+        current_dir = os.getcwd()
+        os.chdir(temp_dir)
+        logger.info(f"Changed to directory: {temp_dir}")
+        
+        cmd = [
+            'pdflatex',
+            '-interaction=nonstopmode',
+            '-halt-on-error',
+            '-file-line-error',
+            tex_filename
+        ]
+        
+        logger.info(f"Executing: {' '.join(cmd)}")
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=30  # 30 seconds timeout
+        )
+        
+        # Save compilation logs
+        with open(os.path.join(temp_dir, 'compile.log'), 'w') as f:
+            f.write(f"STDOUT:\n{result.stdout}\n\nSTDERR:\n{result.stderr}")
+        
+        logger.info(f"pdflatex return code: {result.returncode}")
+        logger.debug(f"STDOUT: {result.stdout[:200]}...")
+        logger.debug(f"STDERR: {result.stderr[:200]}...")
+        
+        # Check output
+        if result.returncode != 0:
+            logger.error(f"pdflatex failed with code {result.returncode}")
+            if os.path.exists(f"{base_filename}.log"):
+                with open(f"{base_filename}.log", 'r') as f:
+                    logger.error(f"LaTeX log:\n{f.read()}")
+            return None
+        
+        if not os.path.exists(pdf_path):
+            logger.error("PDF file not generated")
+            return None
+        
+        # Verify PDF is valid
+        if os.path.getsize(pdf_path) < 100:  # At least 100 bytes
+            logger.error("Generated PDF is too small (likely invalid)")
+            return None
+        
+        # Read PDF content
+        with open(pdf_path, 'rb') as f:
+            pdf_content = f.read()
+        
+        logger.info(f"PDF generated successfully. Size: {len(pdf_content)} bytes")
+        return pdf_content
+        
+    except subprocess.TimeoutExpired:
+        logger.error("LaTeX compilation timed out after 30 seconds")
+        return None
     except Exception as e:
         logger.error(f"Error in generate_pdf: {str(e)}")
         logger.error(traceback.format_exc())
         return None
+    finally:
+        try:
+            if temp_dir and os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+                logger.info(f"Cleaned up temp directory: {temp_dir}")
+        except Exception as e:
+            logger.error(f"Error cleaning up temp directory: {str(e)}")
+        
+        if 'current_dir' in locals():
+            os.chdir(current_dir)
+
+@app.route("/health")
+def health_check():
+    """Enhanced health check with system diagnostics"""
+    health_data = {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "system": {
+            "latex": get_latex_version(),
+            "python": sys.version,
+            "disk_space": shutil.disk_usage("/").free,
+            "temp_dir_writable": os.access(TEMP_PDF_DIR, os.W_OK)
+        }
+    }
+    
+    # Test PDF generation
+    try:
+        test_content = r"""\documentclass{article}\begin{document}Test PDF\end{document}"""
+        pdf = generate_pdf(test_content)
+        health_data["test_pdf"] = "success" if pdf else "failed"
+    except Exception as e:
+        health_data["test_pdf"] = f"error: {str(e)}"
+    
+    return jsonify(health_data)
 
 @app.route("/generate-pdf", methods=["POST"])
 def generate_resume():
+    """Main PDF generation endpoint with detailed logging"""
+    start_time = datetime.now()
+    logger.info("PDF generation request started")
+    
     try:
-        logger.info("Received /generate-pdf request")
+        # Validate input
+        if not request.is_json:
+            logger.error("Request is not JSON")
+            return jsonify({"error": "Request must be JSON"}), 400
+            
         data = request.get_json()
-        if not data:
-            logger.error("No data provided in request")
-            return jsonify({"error": "No data provided"}), 400
-
-        # Log received data (excluding any sensitive info)
-        logger.info(f"Received data for: {data.get('name', 'Unknown')}")
+        logger.info(f"Request data keys: {list(data.keys())}")
         
-        # Basic Info
+        # [Rest of your existing resume generation code...]
+        # (Keep all your existing LaTeX template generation code here)
+         # Basic Info
         name = escape_latex(data.get("name", "Your Name"))
         phone = escape_latex(data.get("phone", "123-456-7890"))
         email = escape_latex(data.get("email", "example@email.com"))
@@ -332,30 +365,40 @@ def generate_resume():
 \end{itemize}
 \end{document}
 """
-        # Log that we're about to generate the PDF
-        logger.info("LaTeX document created, calling generate_pdf function")
         
-        pdf_path = generate_pdf(latex_content)
-
-        if pdf_path and os.path.exists(pdf_path):
-            logger.info(f"PDF generated successfully at {pdf_path}, sending file to client")
-            return send_file(pdf_path, 
-                           as_attachment=True, 
-                           download_name="resume.pdf",
-                           mimetype="application/pdf")
-        else:
-            logger.error("PDF generation failed or file not found")
-            return jsonify({"error": "Failed to generate PDF. Check server logs for details."}), 500
-
+        # Generate PDF
+        logger.info("Starting PDF generation")
+        pdf_content = generate_pdf(latex_content)
+        
+        if not pdf_content:
+            logger.error("PDF generation failed")
+            return jsonify({"error": "PDF generation failed"}), 500
+        
+        # Prepare response
+        duration = (datetime.now() - start_time).total_seconds()
+        logger.info(f"Request completed in {duration:.2f} seconds")
+        
+        return send_file(
+            BytesIO(pdf_content),
+            as_attachment=True,
+            download_name=f"resume_{datetime.now().strftime('%Y%m%d')}.pdf",
+            mimetype="application/pdf"
+        )
+        
     except Exception as e:
         logger.error(f"Error in generate_resume: {str(e)}")
         logger.error(traceback.format_exc())
         return jsonify({
-            "error": str(e),
+            "error": "Internal server error",
+            "details": str(e),
             "traceback": traceback.format_exc()
         }), 500
 
+# Initialize environment when starting
+setup_environment()
+
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 8080))
     logger.info(f"Starting Rizzume API on port {port}")
-    app.run(host="0.0.0.0", port=port)
+    logger.info(f"Temp PDF directory: {TEMP_PDF_DIR}")
+    app.run(host="0.0.0.0", port=port, debug=False)
