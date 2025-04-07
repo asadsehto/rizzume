@@ -1,3 +1,4 @@
+/* Base Styles */
 * {
   margin: 0;
   padding: 0;
@@ -15,7 +16,7 @@ body {
   min-height: 100vh;
 }
 
-/* Builder Styles */
+/* Builder Layout */
 .builder-container {
   display: flex;
   min-height: 100vh;
@@ -29,24 +30,86 @@ body {
   background: white;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  overflow-y: auto;
+  max-height: 100vh;
 }
 
 .preview-section {
   flex: 1;
   padding: 2rem;
+  display: flex;
+  flex-direction: column;
 }
 
+/* Resume Preview Styles */
 .resume-preview {
   background: white;
   padding: 2rem;
   min-height: 80vh;
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  flex-grow: 1;
 }
 
+.resume-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.resume-header h2 {
+  font-size: 1.8rem;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.section {
+  margin-bottom: 1.5rem;
+}
+
+.section h3 {
+  border-bottom: 2px solid #3498db;
+  padding-bottom: 0.3rem;
+  margin-bottom: 1rem;
+  color: #2c3e50;
+}
+
+.item {
+  margin-bottom: 1rem;
+}
+
+.item-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.3rem;
+}
+
+.item-header h4 {
+  font-size: 1.1rem;
+}
+
+.bullets {
+  padding-left: 1.5rem;
+}
+
+.bullets li {
+  margin-bottom: 0.3rem;
+}
+
+.skills-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.skill-category h4 {
+  margin-bottom: 0.5rem;
+  color: #2c3e50;
+}
+
+/* Buttons */
 .download-btn {
   width: 100%;
   padding: 1rem;
-  margin-top: 1rem;
+  margin-top: 1.5rem;
   background: #2ecc71;
   color: white;
   border: none;
@@ -55,6 +118,17 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.download-btn:hover {
+  background-color: #27ae60;
+}
+
+.download-btn:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
 }
 
 .loading-spinner {
@@ -72,8 +146,30 @@ body {
   to { transform: rotate(360deg); }
 }
 
+/* Messages */
+.error-message {
+  background-color: #fee;
+  border-left: 4px solid #f66;
+  padding: 12px 16px;
+  margin-top: 1rem;
+  border-radius: 4px;
+}
+
+.success-message {
+  background-color: #efe;
+  border-left: 4px solid #6f6;
+  padding: 12px 16px;
+  margin-top: 1rem;
+  border-radius: 4px;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
   .builder-container {
     flex-direction: column;
+  }
+  
+  .form-section, .preview-section {
+    max-height: none;
   }
 }
