@@ -1,4 +1,4 @@
 [build]
   base = "frontend"
-  command = "npm install && npm run build"
+  command = "CI= npm install && npm run build"
   publish = "frontend/build"
