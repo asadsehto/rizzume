@@ -246,23 +246,43 @@ function App() {
     setError('');
     setSuccess(false);
     
+    const BACKEND_URL = 'https://rizzume-production-388f.up.railway.app';
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 seconds timeout
+    
     try {
       // Make API call to backend
-      const response = await fetch('https://rizzume-production-388f.up.railway.app/generate-pdf', {
+      const response = await fetch(`${BACKEND_URL}/generate-pdf`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Origin': window.location.origin,
         },
         body: JSON.stringify(formData),
+        signal: controller.signal
       });
       
+      clearTimeout(timeoutId);
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate resume');
+        let errorMessage = 'Failed to generate resume';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
       
       // Get blob from response
       const blob = await response.blob();
+      
+      // Check if we received a PDF
+      if (blob.type !== 'application/pdf' && !blob.type.includes('pdf')) {
+        console.error("Received invalid content type:", blob.type);
+        throw new Error('Invalid response from server. Expected PDF.');
+      }
       
       // Create download link
       const url = window.URL.createObjectURL(blob);
@@ -281,7 +301,12 @@ function App() {
       
       setSuccess(true);
     } catch (err) {
-      setError(err.message);
+      console.error("Error generating resume:", err);
+      if (err.name === 'AbortError') {
+        setError('Request timed out. The server might be busy. Please try again.');
+      } else {
+        setError(err.message);
+      }
     } finally {
       setLoading(false);
     }
@@ -682,8 +707,19 @@ function App() {
             </button>
           </div>
           
-          {error && <div className="error-message">{error}</div>}
-          {success && <div className="success-message">Resume generated successfully!</div>}
+          {error && (
+            <div className="error-message">
+              <p><strong>Error:</strong> {error}</p>
+              <p>Please try again or contact support if the issue persists.</p>
+            </div>
+          )}
+          
+          {success && (
+            <div className="success-message">
+              <p>Resume generated successfully!</p>
+              <p>If the download didn't start automatically, please check your browser settings.</p>
+            </div>
+          )}
           
           <div className="form-actions">
             <button
@@ -691,11 +727,22 @@ function App() {
               className="submit-btn"
               disabled={loading}
             >
-              {loading ? 'Generating...' : 'Generate Resume PDF'}
+              {loading ? (
+                <span>
+                  <span className="loading-spinner"></span>
+                  Generating PDF...
+                </span>
+              ) : (
+                'Generate Resume PDF'
+              )}
             </button>
           </div>
         </form>
       </div>
+      
+      <footer className="footer">
+        <p>© {new Date().getFullYear()} Rizzume - All Rights Reserved</p>
+      </footer>
     </div>
   );
 }
