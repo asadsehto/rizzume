@@ -94,6 +94,150 @@ def generate_resume():
         linkedin = escape_latex(data.get("linkedin", ""))
         github = escape_latex(data.get("github", ""))
 
+                # Education
+        education_latex = ""
+        for edu in data.get("education", []):
+            institution = escape_latex(edu.get("institution", ""))
+            location = escape_latex(edu.get("location", ""))
+            degree = escape_latex(edu.get("degree", ""))
+            dates = escape_latex(edu.get("dates", ""))
+            education_latex += f"""
+    \\resumeSubheading
+      {{{institution}}}{{{location}}}
+      {{{degree}}}{{{dates}}}"""
+
+        # Experience
+        experience_latex = ""
+        for exp in data.get("experience", []):
+            position = escape_latex(exp.get("position", ""))
+            dates = escape_latex(exp.get("dates", ""))
+            company = escape_latex(exp.get("company", ""))
+            location = escape_latex(exp.get("location", ""))
+
+            experience_latex += f"""
+    \\resumeSubheading
+      {{{position}}}{{{dates}}}
+      {{{company}}}{{{location}}}
+      \\resumeItemListStart"""
+
+            for bullet in exp.get("bullets", []):
+                bullet_text = escape_latex(bullet)
+                experience_latex += f"""
+        \\resumeItem{{{bullet_text}}}"""
+
+            experience_latex += """
+      \\resumeItemListEnd"""
+
+        # Projects
+        projects_latex = ""
+        for proj in data.get("projects", []):
+            proj_name = escape_latex(proj.get("name", ""))
+            technologies = escape_latex(proj.get("technologies", ""))
+            dates = escape_latex(proj.get("dates", ""))
+
+            projects_latex += f"""
+    \\resumeProjectHeading
+      {{\\textbf{{{proj_name}}} $|$ \\emph{{{technologies}}}}}{{{dates}}}
+      \\resumeItemListStart"""
+
+            for bullet in proj.get("bullets", []):
+                bullet_text = escape_latex(bullet)
+                projects_latex += f"""
+        \\resumeItem{{{bullet_text}}}"""
+
+            projects_latex += """
+      \\resumeItemListEnd"""
+
+        # Skills
+        skills_latex = ""
+        for category, items in data.get("skills", {}).items():
+            category_text = escape_latex(category)
+            skills_list = [escape_latex(skill) for skill in items]
+            skills_text = ", ".join(skills_list)
+            skills_latex += f"     \\textbf{{{category_text}}}: {skills_text} \\\\\n"
+
+        # Final LaTeX document
+        latex_content = r"""
+\documentclass[letterpaper,11pt]{article}
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-.5in}
+\addtolength{\textheight}{1.0in}
+\urlstyle{same}
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+
+\titleformat{\section}{\vspace{-4pt}\scshape\raggedright\large}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
+\newcommand{\resumeItem}[1]{\item\small{{#1 \vspace{-2pt}}}}
+\newcommand{\resumeSubheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \textit{\small#3} & \textit{\small #4} \\
+    \end{tabular*}\vspace{-7pt}
+}
+\newcommand{\resumeProjectHeading}[2]{
+    \item
+    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
+      \small#1 & #2 \\
+    \end{tabular*}\vspace{-7pt}
+}
+\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
+\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]} 
+\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
+\newcommand{\resumeItemListStart}{\begin{itemize}} 
+\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+
+\begin{document}
+\begin{center}
+    \textbf{\Huge \scshape """ + name + r"""} \\ \vspace{1pt}
+    \small """ + phone + " $|$ \\href{mailto:" + email + "}{\\underline{" + email + "}} $|$ " + \
+    "\\href{https://linkedin.com/in/" + linkedin + "}{\\underline{linkedin.com/in/" + linkedin + "}} $|$ " + \
+    "\\href{https://github.com/" + github + "}{\\underline{github.com/" + github + "}}" + r"""
+\end{center}
+
+\section{Education}
+\resumeSubHeadingListStart""" + education_latex + r"""
+\resumeSubHeadingListEnd
+
+\section{Experience}
+\resumeSubHeadingListStart""" + experience_latex + r"""
+\resumeSubHeadingListEnd
+
+\section{Projects}
+\resumeSubHeadingListStart""" + projects_latex + r"""
+\resumeSubHeadingListEnd
+
+\section{Technical Skills}
+\begin{itemize}[leftmargin=0.15in, label={}]
+    \small{\item{
+""" + skills_latex + r"""
+    }}
+\end{itemize}
+\end{document}
+"""
+
+
+
         # Generate LaTeX content (same as your original code)
         # ... (your existing LaTeX generation code)
 
