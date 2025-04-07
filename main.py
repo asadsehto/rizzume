@@ -4,6 +4,7 @@ import subprocess
 import uuid
 import tempfile
 from flask_cors import CORS
+from weasyprint import HTML
 
 app = Flask(__name__)
 CORS(app)  # Allow all domains
@@ -11,6 +12,7 @@ CORS(app)  # Allow all domains
 @app.route("/")
 def home():
     return "Welcome to Rizzume - Resume Generator API!"
+
 
 def escape_latex(text):
     """Escape LaTeX special characters"""
@@ -32,62 +34,29 @@ def escape_latex(text):
         text = text.replace(char, replacement)
     return text
 
-def generate_pdf(latex_content):
+
+def generate_pdf_from_html(html_content):
     try:
         # Use Python's tempfile module to create temporary files
         with tempfile.TemporaryDirectory() as temp_dir:
             # Generate unique filenames
             unique_id = str(uuid.uuid4())[:8]
-            base_filename = f"resume_{unique_id}"
-            tex_filename = f"{base_filename}.tex"
-            pdf_filename = f"{base_filename}.pdf"
+            pdf_filename = f"resume_{unique_id}.pdf"
             
-            tex_file_path = os.path.join(temp_dir, tex_filename)
             pdf_file_path = os.path.join(temp_dir, pdf_filename)
             
-            # Write LaTeX content to file
-            with open(tex_file_path, 'w', encoding='utf-8') as latex_file:
-                latex_file.write(latex_content)
+            # Convert HTML to PDF using WeasyPrint
+            HTML(string=html_content).write_pdf(pdf_file_path)
             
-            # Save a debug copy in the same temp directory
-            debug_path = os.path.join(temp_dir, "debug_latest.tex")
-            with open(debug_path, 'w', encoding='utf-8') as debug_file:
-                debug_file.write(latex_content)
-            
-            # Change to temp directory before running pdflatex
-            original_dir = os.getcwd()
-            os.chdir(temp_dir)
-            
-            try:
-                # Run pdflatex
-                cmd = ["pdflatex", "-interaction=nonstopmode", tex_filename]
-                result = subprocess.run(cmd, capture_output=True, text=True)
-                
-                # Log output for debugging
-                log_path = os.path.join(temp_dir, "pdflatex_output.log")
-                with open(log_path, "w") as log:
-                    log.write(f"COMMAND: {' '.join(cmd)}\n\n")
-                    log.write(f"STDOUT:\n{result.stdout}\n\n")
-                    log.write(f"STDERR:\n{result.stderr}\n\n")
-                    log.write(f"RETURN CODE: {result.returncode}\n")
-                
-                # Check if PDF was created
-                if os.path.exists(pdf_filename):
-                    # Copy the PDF to a location that will persist after the temporary directory is deleted
-                    # For this purpose, we'll simply return the path since Flask's send_file will read it
-                    # before the temporary directory is cleaned up
-                    return os.path.join(temp_dir, pdf_filename)
-                else:
-                    print(f"PDF generation failed. PDF file not found in {temp_dir}")
-                    if os.path.exists(f"{base_filename}.log"):
-                        with open(f"{base_filename}.log", "r") as log_file:
-                            print(f"LaTeX log: {log_file.read()}")
-                    return None
-            finally:
-                os.chdir(original_dir)
+            # Check if PDF was created
+            if os.path.exists(pdf_file_path):
+                return pdf_file_path
+            else:
+                return None
     except Exception as e:
         print(f"Error generating PDF: {e}")
         return None
+
 
 @app.route("/generate-pdf", methods=["POST"])
 def generate_resume():
@@ -111,9 +80,10 @@ def generate_resume():
             degree = escape_latex(edu.get("degree", ""))
             dates = escape_latex(edu.get("dates", ""))
             education_latex += f"""
-    \\resumeSubheading
-      {{{institution}}}{{{location}}}
-      {{{degree}}}{{{dates}}}"""
+    <div class="resume-section">
+        <p><strong>{institution}</strong> - {degree} ({dates})</p>
+        <p>{location}</p>
+    </div>"""
 
         # Experience
         experience_latex = ""
@@ -124,18 +94,17 @@ def generate_resume():
             location = escape_latex(exp.get("location", ""))
 
             experience_latex += f"""
-    \\resumeSubheading
-      {{{position}}}{{{dates}}}
-      {{{company}}}{{{location}}}
-      \\resumeItemListStart"""
+    <div class="resume-section">
+        <p><strong>{position}</strong> at {company} ({dates})</p>
+        <p>{location}</p>
+        <ul>"""
 
             for bullet in exp.get("bullets", []):
                 bullet_text = escape_latex(bullet)
                 experience_latex += f"""
-        \\resumeItem{{{bullet_text}}}"""
+            <li>{bullet_text}</li>"""
 
-            experience_latex += """
-      \\resumeItemListEnd"""
+            experience_latex += "</ul></div>"
 
         # Projects
         projects_latex = ""
@@ -145,17 +114,16 @@ def generate_resume():
             dates = escape_latex(proj.get("dates", ""))
 
             projects_latex += f"""
-    \\resumeProjectHeading
-      {{\\textbf{{{proj_name}}} $|$ \\emph{{{technologies}}}}}{{{dates}}}
-      \\resumeItemListStart"""
+    <div class="resume-section">
+        <p><strong>{proj_name}</strong> - {technologies} ({dates})</p>
+        <ul>"""
 
             for bullet in proj.get("bullets", []):
                 bullet_text = escape_latex(bullet)
                 projects_latex += f"""
-        \\resumeItem{{{bullet_text}}}"""
+            <li>{bullet_text}</li>"""
 
-            projects_latex += """
-      \\resumeItemListEnd"""
+            projects_latex += "</ul></div>"
 
         # Skills
         skills_latex = ""
@@ -163,95 +131,58 @@ def generate_resume():
             category_text = escape_latex(category)
             skills_list = [escape_latex(skill) for skill in items]
             skills_text = ", ".join(skills_list)
-            skills_latex += f"     \\textbf{{{category_text}}}: {skills_text} \\\\\n"
+            skills_latex += f"<p><strong>{category_text}</strong>: {skills_text}</p>\n"
 
-        # Final LaTeX document
-        latex_content = r"""
-\documentclass[letterpaper,11pt]{article}
-\usepackage{latexsym}
-\usepackage[empty]{fullpage}
-\usepackage{titlesec}
-\usepackage{marvosym}
-\usepackage[usenames,dvipsnames]{color}
-\usepackage{verbatim}
-\usepackage{enumitem}
-\usepackage[hidelinks]{hyperref}
-\usepackage{fancyhdr}
-\usepackage[english]{babel}
-\usepackage{tabularx}
+        # Final HTML content for the PDF
+        html_content = f"""
+<html>
+<head>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }}
+        .resume-section {{
+            margin-bottom: 20px;
+        }}
+        .resume-section p {{
+            margin: 5px 0;
+        }}
+        .resume-section ul {{
+            margin: 5px 0;
+            padding-left: 20px;
+        }}
+    </style>
+</head>
+<body>
+    <div class="resume-header">
+        <h1>{name}</h1>
+        <p>{phone} | <a href="mailto:{email}">{email}</a> | <a href="https://linkedin.com/in/{linkedin}">LinkedIn</a> | <a href="https://github.com/{github}">GitHub</a></p>
+    </div>
 
-\pagestyle{fancy}
-\fancyhf{}
-\fancyfoot{}
-\renewcommand{\headrulewidth}{0pt}
-\renewcommand{\footrulewidth}{0pt}
-\addtolength{\oddsidemargin}{-0.5in}
-\addtolength{\evensidemargin}{-0.5in}
-\addtolength{\textwidth}{1in}
-\addtolength{\topmargin}{-.5in}
-\addtolength{\textheight}{1.0in}
-\urlstyle{same}
-\raggedbottom
-\raggedright
-\setlength{\tabcolsep}{0in}
+    <h2>Education</h2>
+    {education_latex}
 
-\titleformat{\section}{\vspace{-4pt}\scshape\raggedright\large}{}{0em}{}[\color{black}\titlerule \vspace{-5pt}]
-\newcommand{\resumeItem}[1]{\item\small{{#1 \vspace{-2pt}}}}
-\newcommand{\resumeSubheading}[4]{
-  \vspace{-2pt}\item
-    \begin{tabular*}{0.97\textwidth}[t]{l@{\extracolsep{\fill}}r}
-      \textbf{#1} & #2 \\
-      \textit{\small#3} & \textit{\small #4} \\
-    \end{tabular*}\vspace{-7pt}
-}
-\newcommand{\resumeProjectHeading}[2]{
-    \item
-    \begin{tabular*}{0.97\textwidth}{l@{\extracolsep{\fill}}r}
-      \small#1 & #2 \\
-    \end{tabular*}\vspace{-7pt}
-}
-\renewcommand\labelitemii{$\vcenter{\hbox{\tiny$\bullet$}}$}
-\newcommand{\resumeSubHeadingListStart}{\begin{itemize}[leftmargin=0.15in, label={}]} 
-\newcommand{\resumeSubHeadingListEnd}{\end{itemize}}
-\newcommand{\resumeItemListStart}{\begin{itemize}} 
-\newcommand{\resumeItemListEnd}{\end{itemize}\vspace{-5pt}}
+    <h2>Experience</h2>
+    {experience_latex}
 
-\begin{document}
-\begin{center}
-    \textbf{\Huge \scshape """ + name + r"""} \\ \vspace{1pt}
-    \small """ + phone + " $|$ \\href{mailto:" + email + "}{\\underline{" + email + "}} $|$ " + \
-    "\\href{https://linkedin.com/in/" + linkedin + "}{\\underline{linkedin.com/in/" + linkedin + "}} $|$ " + \
-    "\\href{https://github.com/" + github + "}{\\underline{github.com/" + github + "}}" + r"""
-\end{center}
+    <h2>Projects</h2>
+    {projects_latex}
 
-\section{Education}
-\resumeSubHeadingListStart""" + education_latex + r"""
-\resumeSubHeadingListEnd
-
-\section{Experience}
-\resumeSubHeadingListStart""" + experience_latex + r"""
-\resumeSubHeadingListEnd
-
-\section{Projects}
-\resumeSubHeadingListStart""" + projects_latex + r"""
-\resumeSubHeadingListEnd
-
-\section{Technical Skills}
-\begin{itemize}[leftmargin=0.15in, label={}]
-    \small{\item{
-""" + skills_latex + r"""
-    }}
-\end{itemize}
-\end{document}
+    <h2>Skills</h2>
+    {skills_latex}
+</body>
+</html>
 """
 
-        pdf_path = generate_pdf(latex_content)
+        pdf_path = generate_pdf_from_html(html_content)
 
         if pdf_path and os.path.exists(pdf_path):
-            return send_file(pdf_path, 
-                            as_attachment=True, 
-                            download_name="resume.pdf",
-                            mimetype="application/pdf")
+            return send_file(pdf_path,
+                             as_attachment=True,
+                             download_name="resume.pdf",
+                             mimetype="application/pdf")
         else:
             return jsonify({"error": "Failed to generate PDF"}), 500
 
