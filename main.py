@@ -2,12 +2,11 @@ from flask import Flask, request, send_file, jsonify
 import os
 import subprocess
 import uuid
-from flask_cors import CORS
 import tempfile
+from flask_cors import CORS
 
 app = Flask(__name__)
-# Enable CORS for all domains with support for credentials
-CORS(app, supports_credentials=True)
+CORS(app)  # Allow all domains
 
 @app.route("/")
 def home():
@@ -35,44 +34,54 @@ def escape_latex(text):
 
 def generate_pdf(latex_content):
     try:
-        # Use tempfile for cross-platform compatibility
+        # Use Python's tempfile module to create temporary files
         with tempfile.TemporaryDirectory() as temp_dir:
+            # Generate unique filenames
             unique_id = str(uuid.uuid4())[:8]
             base_filename = f"resume_{unique_id}"
             tex_filename = f"{base_filename}.tex"
             pdf_filename = f"{base_filename}.pdf"
-
+            
             tex_file_path = os.path.join(temp_dir, tex_filename)
             pdf_file_path = os.path.join(temp_dir, pdf_filename)
-
-            # Write .tex file
+            
+            # Write LaTeX content to file
             with open(tex_file_path, 'w', encoding='utf-8') as latex_file:
                 latex_file.write(latex_content)
-
-            # Save a debug copy
+            
+            # Save a debug copy in the same temp directory
             debug_path = os.path.join(temp_dir, "debug_latest.tex")
             with open(debug_path, 'w', encoding='utf-8') as debug_file:
                 debug_file.write(latex_content)
-
+            
+            # Change to temp directory before running pdflatex
             original_dir = os.getcwd()
             os.chdir(temp_dir)
-
+            
             try:
-                # Run pdflatex command
+                # Run pdflatex
                 cmd = ["pdflatex", "-interaction=nonstopmode", tex_filename]
                 result = subprocess.run(cmd, capture_output=True, text=True)
-
-                # Log the output for debugging
-                with open(os.path.join(temp_dir, "pdflatex_output.log"), "w") as log:
+                
+                # Log output for debugging
+                log_path = os.path.join(temp_dir, "pdflatex_output.log")
+                with open(log_path, "w") as log:
                     log.write(f"COMMAND: {' '.join(cmd)}\n\n")
                     log.write(f"STDOUT:\n{result.stdout}\n\n")
                     log.write(f"STDERR:\n{result.stderr}\n\n")
                     log.write(f"RETURN CODE: {result.returncode}\n")
-
-                if os.path.exists(pdf_file_path):
-                    # Return the full path to the generated PDF
-                    return pdf_file_path
+                
+                # Check if PDF was created
+                if os.path.exists(pdf_filename):
+                    # Copy the PDF to a location that will persist after the temporary directory is deleted
+                    # For this purpose, we'll simply return the path since Flask's send_file will read it
+                    # before the temporary directory is cleaned up
+                    return os.path.join(temp_dir, pdf_filename)
                 else:
+                    print(f"PDF generation failed. PDF file not found in {temp_dir}")
+                    if os.path.exists(f"{base_filename}.log"):
+                        with open(f"{base_filename}.log", "r") as log_file:
+                            print(f"LaTeX log: {log_file.read()}")
                     return None
             finally:
                 os.chdir(original_dir)
@@ -94,7 +103,7 @@ def generate_resume():
         linkedin = escape_latex(data.get("linkedin", ""))
         github = escape_latex(data.get("github", ""))
 
-                # Education
+        # Education
         education_latex = ""
         for edu in data.get("education", []):
             institution = escape_latex(edu.get("institution", ""))
@@ -236,21 +245,13 @@ def generate_resume():
 \end{document}
 """
 
-
-
-        # Generate LaTeX content (same as your original code)
-        # ... (your existing LaTeX generation code)
-
-        # Make sure you include all the sections (education, experience, etc.)
-        
-        # After generating the PDF
         pdf_path = generate_pdf(latex_content)
 
         if pdf_path and os.path.exists(pdf_path):
             return send_file(pdf_path, 
-                           mimetype='application/pdf',
-                           as_attachment=True, 
-                           download_name="resume.pdf")
+                            as_attachment=True, 
+                            download_name="resume.pdf",
+                            mimetype="application/pdf")
         else:
             return jsonify({"error": "Failed to generate PDF"}), 500
 
