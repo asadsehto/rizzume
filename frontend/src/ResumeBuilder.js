@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Preview from './Preview';
 import './App.css';
 
-function  ResumeBuilder() {
+function ResumeBuilder() {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -375,16 +375,16 @@ const handleSubmit = async (e) => {
 
 // Complete return statement with form UI
 return (
-  <div className="app">
-    <header className="header">
-      <h1>Rizzume - Professional Resume Builder</h1>
-      <p>Create a stunning professional resume in minutes</p>
-    </header>
-    
-    <div className="builder-container">
-      {/* Left Column - Form */}
-      <div className="form-section">
-        <form onSubmit={handleSubmit} className="resume-form">
+    <div className="app">
+      <header className="header">
+        <h1>Rizzume - Professional Resume Builder</h1>
+        <p>Create a stunning professional resume in minutes</p>
+      </header>
+      
+      <div className="builder-container">
+        {/* Form Section */}
+        <div className="form-section">
+          <form onSubmit={handleSubmit} className="resume-form">
           {/* Personal Information */}
           <div className="section">
             <h2>Personal Information</h2>
@@ -809,17 +809,18 @@ return (
         </form>
       </div>
       
-      {/* Right Column - Preview */}
-      <div className="preview-section">
-        <h2>Live Preview</h2>
-        <Preview formData={formData} />
+     {/* Preview Section */}
+        <div className="preview-section">
+          <h2>Live Preview</h2>
+          <Preview formData={formData} />
+        </div>
       </div>
+      
+      <footer className="footer">
+        <p>© {new Date().getFullYear()} Rizzume - All Rights Reserved</p>
+      </footer>
     </div>
-    
-    <footer className="footer">
-      <p>© {new Date().getFullYear()} Rizzume - All Rights Reserved</p>
-    </footer>
-  </div>
-);
+  );
+}
 
-export default  ResumeBuilder;
+export default ResumeBuilder;
