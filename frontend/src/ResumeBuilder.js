@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Preview from './Preview';
 import './App.css';
 
-function App() {
+function  ResumeBuilder() {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -822,4 +822,4 @@ return (
   </div>
 );
 
-export default App;
+export default  ResumeBuilder;
