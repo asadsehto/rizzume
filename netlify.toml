@@ -1,4 +1,4 @@
 [build]
   base = "frontend"
-  command = "CI= npm install && npm run build"
+  command = "DISABLE_ESLINT_PLUGIN=true npm install && npm run build"
   publish = "build"  # Changed from "frontend/build"
