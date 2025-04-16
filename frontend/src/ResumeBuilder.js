@@ -256,7 +256,7 @@ const handleSubmit = async (e) => {
   // First check if the API is healthy
   try {
     console.log("Checking API health...");
-    const response = await fetch(`${BACKEND_URL}/generate-pdf`, {
+    const healthCheck = await fetch(`${BACKEND_URL}/generate-pdf`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
