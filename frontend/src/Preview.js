@@ -9,25 +9,33 @@ export default function Preview({ formData }) {
         <div className="contact-info">
           {formData.phone && (
             <div className="contact-item">
-              <span className="contact-icon">📱</span>
+              <span className="contact-icon">
+                <span role="img" aria-label="mobile phone">📱</span>
+              </span>
               <span>{formData.phone}</span>
             </div>
           )}
           {formData.email && (
             <div className="contact-item">
-              <span className="contact-icon">✉️</span>
+              <span className="contact-icon">
+                <span role="img" aria-label="envelope">✉️</span>
+              </span>
               <span>{formData.email}</span>
             </div>
           )}
           {formData.linkedin && (
             <div className="contact-item">
-              <span className="contact-icon">🔗</span>
+              <span className="contact-icon">
+                <span role="img" aria-label="link">🔗</span>
+              </span>
               <span>linkedin.com/in/{formData.linkedin}</span>
             </div>
           )}
           {formData.github && (
             <div className="contact-item">
-              <span className="contact-icon">💻</span>
+              <span className="contact-icon">
+                <span role="img" aria-label="laptop computer">💻</span>
+              </span>
               <span>github.com/{formData.github}</span>
             </div>
           )}
