@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Preview from './Preview';
-import './App.css';
+import './ResumeBuilder.css';  // Change this line to use the new CSS file
+import config from './config';
 
 function ResumeBuilder() {
   const [formData, setFormData] = useState({
@@ -247,14 +248,15 @@ const handleSubmit = async (e) => {
   setError('');
   setSuccess(false);
   
-  const BACKEND_URL = 'https://rizzume-production-388f.up.railway.app';
+  // Change this line to use localhost instead of Railway
+  const BACKEND_URL = config.BACKEND_URL;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 seconds timeout
   
   // First check if the API is healthy
   try {
     console.log("Checking API health...");
-    const healthCheck = await fetch(`${BACKEND_URL}/health`, {
+    const response = await fetch(`${BACKEND_URL}/generate-pdf`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

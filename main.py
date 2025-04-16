@@ -30,7 +30,10 @@ CORS(app)  # Allow all domains
 
 # Configuration
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB limit
-TEMP_PDF_DIR = os.environ.get('TEMP_PDF_DIR', '/tmp/pdfs')
+if os.name == 'nt':  # Windows
+    TEMP_PDF_DIR = os.environ.get('TEMP_PDF_DIR', os.path.join(os.path.dirname(__file__), 'tmp', 'pdfs'))
+else:  # Unix/Linux
+    TEMP_PDF_DIR = os.environ.get('TEMP_PDF_DIR', '/tmp/pdfs')
 
 def setup_environment():
     """Ensure required directories exist"""

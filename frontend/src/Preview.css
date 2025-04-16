@@ -1,0 +1,159 @@
+.resume-preview {
+    background: white;
+    padding: 2rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    max-width: 100%;
+    margin: 0 auto;
+    overflow-y: auto;
+    height: 100%;
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+}
+
+.resume-header {
+    margin-bottom: 1.5rem;
+    text-align: center;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.resume-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.75rem;
+}
+
+.contact-info {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    font-size: 0.85rem;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    color: #475569;
+}
+
+.contact-icon {
+    margin-right: 0.4rem;
+}
+
+.resume-section {
+    margin-bottom: 1.5rem;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #4f46e5;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid #e2e8f0;
+    font-weight: 600;
+}
+
+.section-content {
+    padding-left: 0.4rem;
+}
+
+.item {
+    margin-bottom: 1.25rem;
+}
+
+.item:last-child {
+    margin-bottom: 0;
+}
+
+.item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.25rem;
+}
+
+.item-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.item-date {
+    font-size: 0.8rem;
+    color: #64748b;
+}
+
+.item-subtitle {
+    font-size: 0.85rem;
+    color: #475569;
+    margin-top: 0.25rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+.item-bullets {
+    margin-top: 0.4rem;
+    padding-left: 1.25rem;
+    list-style-type: disc;
+    color: #475569;
+    font-size: 0.85rem;
+}
+
+.item-bullets li {
+    margin-bottom: 0.25rem;
+}
+
+.technologies {
+    margin-top: 0.4rem;
+    font-size: 0.8rem;
+    color: #475569;
+}
+
+.tech-label {
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.skills-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.skill-category {
+    margin-bottom: 1rem;
+}
+
+.category-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.4rem;
+}
+
+.skills-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.skill-badge {
+    background-color: #e0e7ff;
+    color: #4f46e5;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.skill-badge:hover {
+    background-color: #c7d2fe;
+    transform: translateY(-1px);
+}
