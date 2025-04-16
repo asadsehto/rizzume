@@ -68,7 +68,7 @@ export default function HomePage() {
             <div className="testimonial-author">
               <div className="author-avatar">JD</div>
               <div className="author-info">
-                <h4>John Doe</h4>
+                <h4>Ahmed Saeed Umar</h4>
                 <p>Software Engineer</p>
               </div>
             </div>
@@ -79,7 +79,7 @@ export default function HomePage() {
             <div className="testimonial-author">
               <div className="author-avatar">JS</div>
               <div className="author-info">
-                <h4>Jane Smith</h4>
+                <h4>Sandesh Kumar</h4>
                 <p>Marketing Specialist</p>
               </div>
             </div>
