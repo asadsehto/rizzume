@@ -1,6 +1,6 @@
 # Rizzume - Modern Resume Builder
 
-![Rizzume Demo](demo.gif) *![image](https://github.com/user-attachments/assets/30c6a659-2abb-4718-9677-5ed118007a13 )*
+![Rizzume Demo](demo.gif) *![image](https://github.com/user-attachments/assets/32b6ee4c-6ae4-49ed-a714-c38895a86dee)*
 ## 🚀 Features
 
 - **Real-time resume preview** as you type
