@@ -1,69 +1,76 @@
-# Rizzume - Modern Resume Builder
+# Rizzume
 
-![Rizzume Demo](demo.gif) *![image](https://github.com/user-attachments/assets/32b6ee4c-6ae4-49ed-a714-c38895a86dee)*
-## 🚀 Features
+**A full-stack resume builder with React, Flask, and LaTeX PDF export.**
 
-- **Real-time resume preview** as you type
-- **PDF generation** with professional formatting
-- **Multi-section support** (Education, Experience, Projects, Skills)
-- **Dynamic form fields** - add/remove entries easily
-- **Mobile-responsive design** works on all devices
+Enter education, experience, projects, and skills through a form-based interface, preview your resume, and download a formatted PDF.
 
-## 🔧 Installation
+## Features
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/rizzume.git
-   cd rizzume/frontend  
+- Resume sections for education, experience, projects, and skills.
+- Add and remove entries as your resume changes.
+- Real-time preview and PDF generation.
+- Responsive React interface.
 
-## Installation
+## Architecture
 
-2. Install dependencies:
-   ```bash
-   npm install
-   
-3. Start development server:
-   ```bash
-    npm start
+```text
+React form → Flask API → LaTeX document → PDF download
+```
 
-    
-## 🖥️ Tech Stack
+| Layer | Technology |
+| --- | --- |
+| Interface | React, HTML, CSS |
+| API | Python, Flask |
+| PDF generation | LaTeX / pdflatex |
+| Packaging | Dockerfile and deployment configuration |
 
-**Frontend:**
-- React.js
-- CSS3
-- HTML5
+## Development
 
-**Backend:**
-- Python/Flask
-- LaTeX PDF generation
+```bash
+git clone https://github.com/asadsehto/rizzume.git
+cd rizzume
+python -m venv .venv
+```
 
-**Deployment:**
-- Frontend: Netlify
-- Backend: Railway
+Activate the environment, then start the root Python API:
 
-## 📝 How to Use
+```bash
+python -m pip install -r requirements.txt
+python main.py
+```
 
-1. Fill in your personal information
-2. Add education, work experience, projects
-3. Customize skills sections
-4. Preview changes instantly
-5. Download as PDF with one click
+The API defaults to port **8080**, configurable through `PORT`. PDF generation requires `pdflatex` and the LaTeX packages used by the resume template.
 
-## 🌐 Live Demo
+In a second terminal:
 
-Check out the live version: [https://rizzume.netlify.app](https://rizzume.netlify.app)
+```bash
+cd rizzume/frontend
+npm install
+npm start
+```
 
-## 🤝 Contributing
+Configure the frontend API base URL to match your backend.
 
-Pull requests are welcome! For major changes, please open an issue first.
+## Repository map
 
-## 📜 License
+- `frontend/` — React interface.
+- `main.py` — root Flask API and PDF-generation entry point.
+- `latex_utils.py` — LaTeX-related utilities.
+- `Dockerfile`, `netlify.toml`, and Railway configuration — packaging and deployment setup.
 
-This project is licensed under the MIT License.
+## Usage
 
-## ✉️ Contact
+1. Enter your contact details.
+2. Add education, experience, projects, and skills.
+3. Review the preview.
+4. Generate and download your PDF.
 
-**Asad Saleem**  
-- GitHub: [@asadsehto](https://github.com/asadsehto)  
-- Email: asadsalimx@gmail.com
+The project aims to produce readable resumes; compatibility with every applicant-tracking system is not guaranteed.
+
+## Contributing
+
+Issues and pull requests are welcome. Include reproduction steps for bugs and sample input with personal information removed.
+
+## Contact
+
+[Asad Saleem](https://github.com/asadsehto) · [Email](mailto:asadsaleemsahto@gmail.com)
